@@ -1623,7 +1623,7 @@ static void rcu_torture_onoff_cleanup(void)
 
 #else /* #ifdef CONFIG_HOTPLUG_CPU */
 
-static int
+static int __cpuinit
 rcu_torture_onoff_init(void)
 {
 	return 0;
