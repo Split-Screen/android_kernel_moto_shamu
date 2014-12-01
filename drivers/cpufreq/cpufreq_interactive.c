@@ -1215,6 +1215,11 @@ static struct attribute_group interactive_attr_group = {
 	.name = "interactive",
 };
 
+static struct attribute_group interactivex_attr_group = {
+	.attrs = interactive_attributes,
+	.name = "interactiveX",
+};
+
 static int cpufreq_interactive_idle_notifier(struct notifier_block *nb,
 					     unsigned long val,
 					     void *data)
@@ -1293,6 +1298,9 @@ static int cpufreq_governor_interactive(struct cpufreq_policy *policy,
 			return rc;
 		}
 
+		rc = sysfs_create_group(get_governor_parent_kobj(policy),
+				&interactivex_attr_group);
+
 		idle_notifier_register(&cpufreq_interactive_idle_nb);
 		cpufreq_register_notifier(
 			&cpufreq_notifier_block, CPUFREQ_TRANSITION_NOTIFIER);
@@ -1321,6 +1329,8 @@ static int cpufreq_governor_interactive(struct cpufreq_policy *policy,
 		idle_notifier_unregister(&cpufreq_interactive_idle_nb);
 		sysfs_remove_group(get_governor_parent_kobj(policy),
 				&interactive_attr_group);
+		sysfs_remove_group(get_governor_parent_kobj(policy),
+				&interactivex_attr_group);
 		if (!have_governor_per_policy())
 			cpufreq_put_global_kobject();
 		mutex_unlock(&gov_lock);
