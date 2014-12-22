@@ -214,6 +214,7 @@ struct wcd9xxx {
 };
 
 int wcd9xxx_interface_reg_read(struct wcd9xxx *wcd9xxx, unsigned short reg);
+
 int wcd9xxx_interface_reg_write(struct wcd9xxx *wcd9xxx, unsigned short reg,
 		u8 val);
 int wcd9xxx_get_logical_addresses(u8 *pgd_la, u8 *inf_la);
