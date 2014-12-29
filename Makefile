@@ -349,7 +349,7 @@ CHECKFLAGS     := -D__linux__ -Dlinux -D__STDC__ -Dunix -D__unix__ \
 CFLAGS_MODULE   =
 AFLAGS_MODULE   =
 LDFLAGS_MODULE  =
-CFLAGS_KERNEL	= -ftree-loop-distribute-patterns -ftree-slp-vectorize -fvect-cost-model -ftree-partial-pre -fgcse-after-reload -fgcse-lm -fgcse-sm -fsched-spec-load -ffast-math -fsingle-precision-constant -fpredictive-commoning -mtune=cortex-a15 -mfpu=neon-vfpv4
+CFLAGS_KERNEL	= -ftree-loop-distribute-patterns -ftree-slp-vectorize -fvect-cost-model -ftree-partial-pre -fgcse-after-reload -fgcse-lm -fgcse-sm -fsched-spec-load -ffast-math -fsingle-precision-constant -fpredictive-commoning -mtune=cortex-a15 -mfpu=neon-vfpv4 -Wno-unused-function
 AFLAGS_KERNEL	=
 CFLAGS_GCOV	= -fprofile-arcs -ftest-coverage
 
