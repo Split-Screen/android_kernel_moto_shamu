@@ -1469,8 +1469,8 @@ config HAS_MACH_MEMUTILS
 	Faster memcpy performance for Krait
 
 config MSM_SLEEPER
-	bool "Limit max frequency while screen is off"
+	bool "CPU hotplug driver"
 	default y
 	help
-	  Limit max frequency while screen is off
+	  CPU hotplug driver
 endif
