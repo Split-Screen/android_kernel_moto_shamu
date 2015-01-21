@@ -3745,7 +3745,6 @@ static int get_cpu_activity(int cpu)
 }
 
 /*
-/*
  * sd_lb_stats - Structure to store the statistics of a sched_domain
  * 		during load balancing.
  */
