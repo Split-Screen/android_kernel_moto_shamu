@@ -211,8 +211,8 @@ static ssize_t kgsl_pwrctrl_thermal_pwrlevel_store(struct device *dev,
 
 	kgsl_mutex_lock(&device->mutex, &device->mutex_owner);
 
-	if (level > pwr->num_pwrlevels - 2)
-		level = pwr->num_pwrlevels - 2;
+	if (level > pwr->num_pwrlevels - 1)
+		level = pwr->num_pwrlevels - 1;
 
 	pwr->thermal_pwrlevel = level;
 
@@ -401,6 +401,9 @@ static ssize_t kgsl_pwrctrl_max_gpuclk_store(struct device *dev,
 	if (level < 0)
 		goto done;
 
+	if (level > 6)
+		level = 6;
+
 	pwr->thermal_pwrlevel = (unsigned int) level;
 
 	/*
@@ -463,10 +466,18 @@ static ssize_t kgsl_pwrctrl_gpuclk_show(struct device *dev,
 {
 	struct kgsl_device *device = kgsl_device_from_dev(dev);
 	struct kgsl_pwrctrl *pwr;
+	unsigned int level;
+
 	if (device == NULL)
 		return 0;
 	pwr = &device->pwrctrl;
-	return snprintf(buf, PAGE_SIZE, "%ld\n", kgsl_pwrctrl_active_freq(pwr));
+
+	if (device->state == KGSL_STATE_SLUMBER)
+		level = pwr->num_pwrlevels - 1;
+	else
+		level = pwr->active_pwrlevel;
+	return snprintf(buf, PAGE_SIZE, "%d\n",
+			pwr->pwrlevels[level].gpu_freq);
 }
 
 static ssize_t kgsl_pwrctrl_idle_timer_store(struct device *dev,
