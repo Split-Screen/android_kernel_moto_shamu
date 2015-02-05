@@ -6847,25 +6847,21 @@ wl_cfg80211_change_station(
 	struct station_parameters *params)
 {
 	int err;
-
-	WL_DBG(("SCB_AUTHORIZE mac_addr:"MACDBG" sta_flags_mask:0x%x "
-				"sta_flags_set:0x%x iface:%s \n", MAC2STRDBG(mac),
-				params->sta_flags_mask, params->sta_flags_set, dev->name));
+	struct bcm_cfg80211 *cfg = wiphy_priv(wiphy);
+	struct net_device *primary_ndev = bcmcfg_to_prmry_ndev(cfg);
 
 	/* Processing only authorize/de-authorize flag for now */
-	if (!(params->sta_flags_mask & BIT(NL80211_STA_FLAG_AUTHORIZED))) {
-		WL_ERR(("WLC_SCB_AUTHORIZE sta_flags_mask not set \n"));
+	if (!(params->sta_flags_mask & BIT(NL80211_STA_FLAG_AUTHORIZED)))
 		return -ENOTSUPP;
-	}
 
 	if (!(params->sta_flags_set & BIT(NL80211_STA_FLAG_AUTHORIZED))) {
-		err = wldev_ioctl(dev, WLC_SCB_DEAUTHORIZE, mac, ETH_ALEN, true);
+		err = wldev_ioctl(primary_ndev, WLC_SCB_DEAUTHORIZE, mac, ETH_ALEN, true);
 		if (err)
 			WL_ERR(("WLC_SCB_DEAUTHORIZE error (%d)\n", err));
 		return err;
 	}
 
-	err = wldev_ioctl(dev, WLC_SCB_AUTHORIZE, mac, ETH_ALEN, true);
+	err = wldev_ioctl(primary_ndev, WLC_SCB_AUTHORIZE, mac, ETH_ALEN, true);
 	if (err)
 		WL_ERR(("WLC_SCB_AUTHORIZE error (%d)\n", err));
 	return err;
@@ -10313,7 +10309,6 @@ static s32 wl_notifier_change_state(struct bcm_cfg80211 *cfg, struct net_info *_
 	s32 err = BCME_OK;
 	u32 mode;
 	u32 chan = 0;
-	u32 frameburst;
 	struct net_info *iter, *next;
 	struct net_device *primary_dev = bcmcfg_to_prmry_ndev(cfg);
 	WL_DBG(("Enter state %d set %d _net_info->pm_restore %d iface %s\n",
@@ -10387,23 +10382,13 @@ static s32 wl_notifier_change_state(struct bcm_cfg80211 *cfg, struct net_info *_
 #if defined(DISABLE_TDLS_IN_P2P)
 			if (cfg->vsdb_mode || p2p_is_on(cfg))
 #else
-			if (cfg->vsdb_mode)
+				if (cfg->vsdb_mode)
 #endif /* defined(DISABLE_TDLS_IN_P2P) */
-			{
+				{
 
-				err = wldev_iovar_setint(primary_dev, "tdls_enable", 0);
-			}
-#endif /* defined(WLTDLS) */
-			if (cfg->vsdb_mode) {
-				/* disable frameburst on multichannel */
-				frameburst = 0;
-				if (wldev_ioctl(primary_dev, WLC_SET_FAKEFRAG, &frameburst,
-					sizeof(frameburst), true) != 0) {
-					WL_DBG(("frameburst set 0 error\n"));
-				} else {
-					WL_DBG(("Frameburst Disabled\n"));
+					err = wldev_iovar_setint(primary_dev, "tdls_enable", 0);
 				}
-			}
+#endif /* defined(WLTDLS) */
 		}
 	} else { /* clear */
 		if (state == WL_STATUS_CONNECTED) {
@@ -10429,20 +10414,11 @@ static s32 wl_notifier_change_state(struct bcm_cfg80211 *cfg, struct net_info *_
 				}
 			}
 			wl_cfg80211_concurrent_roam(cfg, 0);
-
-			if (!cfg->vsdb_mode) {
 #if defined(WLTDLS)
+			if (!cfg->vsdb_mode) {
 				err = wldev_iovar_setint(primary_dev, "tdls_enable", 1);
-#endif /* defined(WLTDLS) */
-				/* enable frameburst on single channel */
-				frameburst = 1;
-				if (wldev_ioctl(primary_dev, WLC_SET_FAKEFRAG, &frameburst,
-					sizeof(frameburst), true) != 0) {
-					WL_DBG(("frameburst set 1 error\n"));
-				} else {
-					WL_DBG(("Frameburst Enabled\n"));
-				}
 			}
+#endif /* defined(WLTDLS) */
 		} else if (state == WL_STATUS_DISCONNECTING) {
 			wake_up_interruptible(&cfg->event_sync_wq);
 		}
