@@ -67,7 +67,7 @@
 #define VIB_STRENGTH 		20
 
 
-#define WAKE_GESTURES_ENABLED	0
+#define WAKE_GESTURES_ENABLED	1
 
 #define LOGTAG			"WG"
 
@@ -113,7 +113,8 @@ static void report_gesture(int gest)
 	if (pwrtrigger_time[0] - pwrtrigger_time[1] < TRIGGER_TIMEOUT)
 	return;
 
-	printk("WG: gesture = %d\n", gest);
+	wake_lock_timeout(&dt2w_wakelock, HZ/2);
+	pr_debug("WG: gesture = %d\n", gest);
 	input_report_rel(gesture_dev, WAKE_GESTURE, gest);
 	input_sync(gesture_dev);
 }
@@ -184,7 +185,7 @@ static void detect_doubletap2wake(int x, int y, bool st)
 {
         bool single_touch = st;
 #if WG_DEBUG
-        pr_info(LOGTAG"x,y(%4d,%4d) tap_time_pre:%llu\n",
+        pr_debug(LOGTAG"x,y(%4d,%4d) tap_time_pre:%llu\n",
                 x, y, tap_time_pre);
 #endif
 	if (x < SWEEP_EDGE || x > SWEEP_X_LIMIT)
@@ -210,7 +211,7 @@ static void detect_doubletap2wake(int x, int y, bool st)
 			new_touch(x, y);
 		}
 		if ((touch_nr > 1)) {
-			pr_info(LOGTAG"double tap\n");
+			pr_debug(LOGTAG"double tap\n");
 			exec_count = false;
 #if (WAKE_GESTURES_ENABLED)
 			if (gestures_switch) {
@@ -275,7 +276,7 @@ static void detect_sweep2wake_v(int x, int y, bool st)
 				if (y < prevy) {
 					if (y < (nexty - SWEEP_Y_NEXT)) {
 						if (exec_county && (jiffies - firsty_time < SWEEP_TIMEOUT)) {
-							pr_info(LOGTAG"sweep up\n");
+							pr_debug(LOGTAG"sweep up\n");
 #if (WAKE_GESTURES_ENABLED)
 							if (gestures_switch) {
 								report_gesture(3);
@@ -306,7 +307,7 @@ static void detect_sweep2wake_v(int x, int y, bool st)
 				if (y > prevy) {
 					if (y > (nexty + SWEEP_Y_NEXT)) {
 						if (exec_county && (jiffies - firsty_time < SWEEP_TIMEOUT)) {
-							pr_info(LOGTAG"sweep down\n");
+							pr_debug(LOGTAG"sweep down\n");
 #if (WAKE_GESTURES_ENABLED)
 							if (gestures_switch) {
 								report_gesture(4);
@@ -363,7 +364,7 @@ static void detect_sweep2wake_h(int x, int y, bool st, bool scr_suspended)
 				if (x > prevx) {
 					if (x > (SWEEP_X_MAX - SWEEP_X_FINAL)) {
 						if (exec_countx && (jiffies - firstx_time < SWEEP_TIMEOUT)) {
-							pr_info(LOGTAG"sweep right\n");
+							pr_debug(LOGTAG"sweep right\n");
 #if (WAKE_GESTURES_ENABLED)
 							if (gestures_switch && scr_suspended) {
 								report_gesture(1);
@@ -397,7 +398,7 @@ static void detect_sweep2wake_h(int x, int y, bool st, bool scr_suspended)
 				if (x < prevx) {
 					if (x < SWEEP_X_FINAL) {
 						if (exec_countx) {
-							pr_info(LOGTAG"sweep left\n");
+							pr_debug(LOGTAG"sweep left\n");
 #if (WAKE_GESTURES_ENABLED)
 							if (gestures_switch && scr_suspended) {
 								report_gesture(2);
@@ -704,7 +705,6 @@ static int __init wake_gestures_init(void)
 		pr_err("%s: input_register_device err=%d\n", __func__, rc);
 		goto err_gesture_dev;
 	}
-	gestures_setdev(gesture_dev);
 #endif
 
 	android_touch_kobj = kobject_create_and_add("android_touch", NULL) ;
@@ -733,8 +733,11 @@ static int __init wake_gestures_init(void)
 		pr_warn("%s: sysfs_create_file failed for wake_gestures\n", __func__);
 	}
 
+	return 0;
+
 err_gesture_dev:
 	input_free_device(gesture_dev);
+err_alloc_dev:
 #endif
 
 	return 0;
