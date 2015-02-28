@@ -867,12 +867,12 @@ static int check_slab(struct kmem_cache *s, struct page *page)
 	maxobj = order_objects(compound_order(page), s->size, s->reserved);
 	if (page->objects > maxobj) {
 		slab_err(s, page, "objects %u > max %u",
-			s->name, page->objects, maxobj);
+			page->objects, maxobj);
 		return 0;
 	}
 	if (page->inuse > page->objects) {
 		slab_err(s, page, "inuse %u > max %u",
-			s->name, page->inuse, page->objects);
+			page->inuse, page->objects);
 		return 0;
 	}
 	/* Slab_pad_check fixes things up after itself */
@@ -889,7 +889,7 @@ static int on_freelist(struct kmem_cache *s, struct page *page, void *search)
 	int nr = 0;
 	void *fp;
 	void *object = NULL;
-	unsigned long max_objects;
+	int max_objects;
 
 	fp = page->freelist;
 	while (fp && nr <= page->objects) {
@@ -3444,6 +3444,7 @@ int kmem_cache_shrink(struct kmem_cache *s)
 	struct list_head *slabs_by_inuse =
 		kmalloc(sizeof(struct list_head) * objects, GFP_KERNEL);
 	unsigned long flags;
+	int ret = 0;
 
 	if (!slabs_by_inuse)
 		return -ENOMEM;
@@ -3484,10 +3485,13 @@ int kmem_cache_shrink(struct kmem_cache *s)
 		/* Release empty slabs */
 		list_for_each_entry_safe(page, t, slabs_by_inuse, lru)
 			discard_slab(s, page);
+
+		if (slabs_node(s, node))
+			ret = 1;
 	}
 
 	kfree(slabs_by_inuse);
-	return 0;
+	return ret;
 }
 EXPORT_SYMBOL(kmem_cache_shrink);
 

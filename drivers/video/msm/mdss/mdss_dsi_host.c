@@ -446,6 +446,7 @@ void mdss_dsi_err_intr_ctrl(struct mdss_dsi_ctrl_pdata *ctrl, u32 mask,
 	u32 intr;
 
 	intr = MIPI_INP(ctrl->ctrl_base + 0x0110);
+	intr &= DSI_INTR_TOTAL_MASK;
 
 	if (enable)
 		intr |= mask;
@@ -1204,7 +1205,6 @@ static int mdss_dsi_cmd_dma_rx(struct mdss_dsi_ctrl_pdata *ctrl,
 	return rx_byte;
 }
 
-
 void mdss_dsi_wait4video_done(struct mdss_dsi_ctrl_pdata *ctrl)
 {
 	unsigned long flag;
@@ -1212,6 +1212,7 @@ void mdss_dsi_wait4video_done(struct mdss_dsi_ctrl_pdata *ctrl)
 
 	/* DSI_INTL_CTRL */
 	data = MIPI_INP((ctrl->ctrl_base) + 0x0110);
+	data &= DSI_INTR_TOTAL_MASK;
 	data |= DSI_INTR_VIDEO_DONE_MASK;
 
 	MIPI_OUTP((ctrl->ctrl_base) + 0x0110, data);
@@ -1225,6 +1226,7 @@ void mdss_dsi_wait4video_done(struct mdss_dsi_ctrl_pdata *ctrl)
 			msecs_to_jiffies(VSYNC_PERIOD * 4));
 
 	data = MIPI_INP((ctrl->ctrl_base) + 0x0110);
+	data &= DSI_INTR_TOTAL_MASK;
 	data &= ~DSI_INTR_VIDEO_DONE_MASK;
 	MIPI_OUTP((ctrl->ctrl_base) + 0x0110, data);
 }
@@ -1625,6 +1627,7 @@ void mdss_dsi_clk_status(struct mdss_dsi_ctrl_pdata *ctrl)
 
 void mdss_dsi_error(struct mdss_dsi_ctrl_pdata *ctrl)
 {
+	u32 intr;
 
 	/* disable dsi error interrupt */
 	mdss_dsi_err_intr_ctrl(ctrl, DSI_INTR_ERROR_MASK, 0);
@@ -1636,6 +1639,12 @@ void mdss_dsi_error(struct mdss_dsi_ctrl_pdata *ctrl)
 	mdss_dsi_timeout_status(ctrl);	/* mask0, 0x0e0 */
 	mdss_dsi_status(ctrl);		/* mask0, 0xc0100 */
 	mdss_dsi_dln0_phy_err(ctrl);	/* mask0, 0x3e00000 */
+
+	/* clear dsi error interrupt */
+	intr = MIPI_INP(ctrl->ctrl_base + 0x0110);
+	intr &= DSI_INTR_TOTAL_MASK;
+	intr |= DSI_INTR_ERROR;
+	MIPI_OUTP(ctrl->ctrl_base + 0x0110, intr);
 
 	dsi_send_events(ctrl, DSI_EV_MDP_BUSY_RELEASE);
 }
@@ -1653,7 +1662,7 @@ irqreturn_t mdss_dsi_isr(int irq, void *ptr)
 	}
 
 	isr = MIPI_INP(ctrl->ctrl_base + 0x0110);/* DSI_INTR_CTRL */
-	MIPI_OUTP(ctrl->ctrl_base + 0x0110, isr);
+	MIPI_OUTP(ctrl->ctrl_base + 0x0110, (isr & ~DSI_INTR_ERROR));
 
 	pr_debug("%s: ndx=%d isr=%x\n", __func__, ctrl->ndx, isr);
 
