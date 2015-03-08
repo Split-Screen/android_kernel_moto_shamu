@@ -281,12 +281,11 @@ static int do_fsync(unsigned int fd, int datasync)
 {
 	struct fd f = fdget(fd);
 	int ret = -EBADF;
-	
-	if (!fsync_enabled)
-		return 0;
 #ifdef CONFIG_ASYNC_FSYNC
         struct fsync_work *fwork;
 #endif
+	if (!fsync_enabled)
+		return 0;
 
 	if (f.file) {
 #ifdef CONFIG_ASYNC_FSYNC
