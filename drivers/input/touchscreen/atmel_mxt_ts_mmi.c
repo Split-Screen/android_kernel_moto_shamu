@@ -1455,7 +1455,7 @@ static void mxt_proc_t100_message(struct mxt_data *data, u8 *message)
 			tool = MT_TOOL_FINGER;
 
 #ifdef CONFIG_WAKE_GESTURES
-		if (data->suspended) {
+		if (atomic_read(&data->suspended)) {
 		        x += 5000;
 		}
 #endif
