@@ -387,7 +387,7 @@ static void wakeup_source_activate(struct wakeup_source *ws)
 	unsigned int cec;
 
 	if (!enable_si_ws && !strcmp(ws->name, "sensor_ind")) {
-		pr_info("wakeup source sensor_ind activate skipped\n");
+		pr_debug("wakeup source sensor_ind activate skipped\n");
 		return;
 	}
 	/*
