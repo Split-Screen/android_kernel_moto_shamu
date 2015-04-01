@@ -77,8 +77,8 @@ ENTRY(relocate_new_kernel)
  ARM(	ret lr	)
  THUMB(	bx lr		)
 
-+#ifdef CONFIG_KEXEC_HARDBOOT
-+hardboot:
+#ifdef CONFIG_KEXEC_HARDBOOT
+hardboot:
 	/* Stash boot arguments in hardboot page:
 	 *  0: KEXEC_HB_PAGE_MAGIC
 	 *  4: kexec_start_address
