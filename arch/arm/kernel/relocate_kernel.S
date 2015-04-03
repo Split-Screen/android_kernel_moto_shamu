@@ -152,20 +152,6 @@ kexec_hardboot:
 
 ENDPROC(relocate_new_kernel)
 
-#ifdef CONFIG_KEXEC_HARDBOOT
-	.globl kexec_boot_atags_len
-kexec_boot_atags_len:
-	.long	0x0
-
-	.globl kexec_kernel_len
-kexec_kernel_len:
-	.long	0x0
-
-	.globl kexec_hardboot
-kexec_hardboot:
-	.long	0x0
-#endif
-
 relocate_new_kernel_end:
 
 	.globl relocate_new_kernel_size
