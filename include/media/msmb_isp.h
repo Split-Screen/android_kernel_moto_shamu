@@ -215,6 +215,7 @@ struct msm_vfe_axi_stream_update_cmd {
 	uint32_t num_streams;
 	enum msm_vfe_axi_stream_update_type update_type;
 	struct msm_vfe_axi_stream_cfg_update_info update_info[MAX_NUM_STREAM];
+	uint32_t cur_frame_id;
 };
 
 struct msm_vfe_smmu_attach_cmd {
@@ -274,6 +275,8 @@ enum msm_vfe_reg_cfg_type {
 	VFE_READ_DMI_64BIT,
 	GET_MAX_CLK_RATE,
 	GET_ISP_ID,
+	VFE_HW_UPDATE_LOCK,
+	VFE_HW_UPDATE_UNLOCK,
 };
 
 struct msm_vfe_cfg_cmd2 {
