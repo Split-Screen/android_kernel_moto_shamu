@@ -215,7 +215,6 @@ struct msm_vfe_axi_stream_update_cmd {
 	uint32_t num_streams;
 	enum msm_vfe_axi_stream_update_type update_type;
 	struct msm_vfe_axi_stream_cfg_update_info update_info[MAX_NUM_STREAM];
-	uint32_t cur_frame_id;
 };
 
 struct msm_vfe_smmu_attach_cmd {
