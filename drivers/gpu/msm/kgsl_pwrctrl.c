@@ -44,6 +44,8 @@
 #define INIT_UDELAY		200
 #define MAX_UDELAY		2000
 
+extern bool full_fm;
+
 #ifdef CONFIG_CPU_FREQ_GOV_ELEMENTALX
 int graphics_boost = 4;
 #endif
@@ -404,7 +406,13 @@ static ssize_t kgsl_pwrctrl_max_gpuclk_store(struct device *dev,
 	if (level > 6)
 		level = 6;
 
-	pwr->thermal_pwrlevel = (unsigned int) level;
+	if (likely(full_fm))
+		pwr->thermal_pwrlevel = (unsigned int) level;
+	else if (!strcmp(current->comm, "thermal-engine") &&
+		level > pwr->thermal_pwrlevel && (level == 1 || level == 2))
+		pr_info("%s: prevented %s from setting thermal_pwrlevel %d\n",
+			__func__, current->comm, level);
+	else pwr->thermal_pwrlevel = (unsigned int) level;
 
 	/*
 	 * if the thermal limit is lower than the current setting,
