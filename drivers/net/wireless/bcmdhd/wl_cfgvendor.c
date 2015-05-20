@@ -440,6 +440,7 @@ static int wl_cfgvendor_gscan_get_batch_results(struct wiphy *wiphy,
 	memcpy(nla_data(complete_flag), &complete, sizeof(complete));
 	dhd_dev_gscan_batch_cache_cleanup(bcmcfg_to_prmry_ndev(cfg));
 	dhd_dev_pno_unlock_access_batch_results(bcmcfg_to_prmry_ndev(cfg));
+
 	return cfg80211_vendor_cmd_reply(skb);
 }
 
