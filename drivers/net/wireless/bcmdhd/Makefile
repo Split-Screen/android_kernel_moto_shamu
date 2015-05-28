@@ -73,8 +73,13 @@ ifeq ($(CONFIG_DHD_USE_STATIC_BUF),y)
   DHDCFLAGS += -DENHANCED_STATIC_BUF
   DHDCFLAGS += -DSTATIC_WL_PRIV_STRUCT
 endif
+
 ifneq ($(CONFIG_DHD_USE_SCHED_SCAN),)
 DHDCFLAGS += -DWL_SCHED_SCAN
+endif
+
+ifeq ($(CONFIG_DHD_OF_SUPPORT),y)
+  DHDCFLAGS += -DDHD_OF_SUPPORT
 endif
 
 # Ioctl timeout 5000ms
@@ -116,9 +121,6 @@ DRIVER_TYPE ?= y
 #########################
 
 ifneq ($(CONFIG_BCM4358),)
-#for dts
-  DHDCFLAGS += -DCONFIG_DTS
-
   DHDCFLAGS += -DUSE_WL_TXBF
   DHDCFLAGS += -DUSE_WL_FRAMEBURST
   DHDCFLAGS += -DCUSTOM_DPC_CPUCORE=0
@@ -356,7 +358,10 @@ DHDOFILES := dhd_pno.o dhd_common.o dhd_ip.o dhd_custom_gpio.o \
 	bcmutils.o bcmwifi_channels.o hndpmu.o linux_osl.o sbutils.o siutils.o \
 	wl_android.o wl_roam.o wl_cfg80211.o wl_cfgp2p.o wl_cfg_btcoex.o wldev_common.o wl_linux_mon.o  \
 	dhd_linux_platdev.o dhd_pno.o dhd_rtt.o dhd_linux_wq.o wl_cfg_btcoex.o \
-	hnd_pktq.o hnd_pktpool.o wl_cfgvendor.o bcmxtlv.o
+	hnd_pktq.o hnd_pktpool.o wl_cfgvendor.o bcmxtlv.o dhd_debug.o dhd_debug_linux.o
+ifneq ($(CONFIG_DHD_OF_SUPPORT),)
+  DHDOFILES += dhd_custom_platdev.o
+endif
 
 ifneq ($(CONFIG_BCMDHD_SDIO),)
   DHDOFILES += bcmsdh.o bcmsdh_linux.o bcmsdh_sdmmc.o bcmsdh_sdmmc_linux.o
