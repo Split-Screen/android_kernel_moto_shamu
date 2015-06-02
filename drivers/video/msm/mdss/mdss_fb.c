@@ -1353,6 +1353,7 @@ static int mdss_fb_alloc_fb_ion_memory(struct msm_fb_data_type *mfd,
 		}
 	} else {
 		pr_err("No IOMMU Domain");
+		rc = -EINVAL;
 		goto fb_mmap_failed;
 
 	}
@@ -1752,7 +1753,7 @@ static int mdss_fb_open(struct fb_info *info, int user)
 		pr_err_once("Shutdown pending. Aborting operation. Request from pid:%d name=%s\n",
 			pid, task->comm);
 		sysfs_notify(&mfd->fbi->dev->kobj, NULL, "show_blank_event");
-		return -EPERM;
+		return -ESHUTDOWN;
 	}
 
 	list_for_each_entry(pinfo, &mfd->proc_list, list) {
@@ -2195,7 +2196,7 @@ static int mdss_fb_pan_idle(struct msm_fb_data_type *mfd)
 		mdss_fb_signal_timeline(&mfd->mdp_sync_pt_data);
 	} else if (mfd->shutdown_pending) {
 		pr_debug("Shutdown signalled\n");
-		return -EPERM;
+		return -ESHUTDOWN;
 	}
 
 	return 0;
@@ -2218,7 +2219,7 @@ static int mdss_fb_wait_for_kickoff(struct msm_fb_data_type *mfd)
 
 	} else if (mfd->shutdown_pending) {
 		pr_debug("Shutdown signalled\n");
-		return -EPERM;
+		return -ESHUTDOWN;
 	}
 
 	return 0;
@@ -2951,7 +2952,7 @@ int mdss_fb_do_ioctl(struct fb_info *info, unsigned int cmd,
 		return -EINVAL;
 
 	if (mfd->shutdown_pending)
-		return -EPERM;
+		return -ESHUTDOWN;
 
 	atomic_inc(&mfd->ioctl_ref_cnt);
 
