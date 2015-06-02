@@ -171,7 +171,6 @@ static void __ref msm_sleeper_resume(struct work_struct *work)
 
 	sleeper_data.suspended = false;
 	
-	if (sleeper_data.plug_all) {
 
 	if (sleeper_data.max_online == 2) {
 		if (cpu_is_offline(1)) {
@@ -183,7 +182,7 @@ static void __ref msm_sleeper_resume(struct work_struct *work)
 				cpu_up(cpu);
 			}
 		}
-	}
+	} 
 }
 
 static int fb_notifier_callback(struct notifier_block *this,
