@@ -2431,8 +2431,6 @@ static int try_set_ctrl(struct msm_vidc_inst *inst, struct v4l2_ctrl *ctrl)
 		}
 		pdata = &hier_p_layers;
 		break;
-<<<<<<< HEAD
-=======
 	case V4L2_CID_MPEG_VIDC_VIDEO_VPX_ERROR_RESILIENCE:
 		property_id = HAL_PARAM_VENC_VPX_ERROR_RESILIENCE_MODE;
 		enable.enable = ctrl->val;
