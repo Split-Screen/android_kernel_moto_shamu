@@ -73,7 +73,7 @@ int adreno_idler(struct devfreq_dev_status stats, struct devfreq *devfreq,
 		/* busy_time >= idleworkload should be considered as a non-idle workload. */
 		if (!idle_lasttime)
 			idle_lasttime = get_time_inms();
-		if (*freq == devfreq->profile->freq_table[devfreq->profile->max_state]) {
+		if (*freq == devfreq->min_freq) {
 			/* frequency is already at its lowest.
 			   No need to calculate things, so bail out. */
 			return 1;
@@ -81,14 +81,14 @@ int adreno_idler(struct devfreq_dev_status stats, struct devfreq *devfreq,
 		if (idle_lasttime + idlewaitms <= get_time_inms() &&
 		    stats.busy_time * 100 < stats.total_time * downdifferenctial) {
 			/* We are idle for idlewaitms! Ramp down the frequency now. */
-			*freq = devfreq->profile->freq_table[devfreq->profile->max_state];
+			*freq = devfreq->min_freq;
 			return 1;
 		}
 	} else {
 		/* This is the case where msm-adreno-tz don't use the lowest frequency.
 		   Mimic this behavior by bumping up the frequency. */
 		idle_lasttime = 0;
-		*freq = devfreq->profile->freq_table[devfreq->profile->max_state - 1];
+		*freq = devfreq->profile->freq_table[1];
 		/* Do not return 1 here and allow rest of the algorithm to
 		   figure out the appropriate frequency for current workload.
 		   It can even set it back to lowest frequency. */
