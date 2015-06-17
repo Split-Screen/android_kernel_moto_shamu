@@ -111,10 +111,22 @@ struct cpuidle_driver {
 	struct cpuidle_state	states[CPUIDLE_STATE_MAX];
 	int			state_count;
 	int			safe_state_index;
+
+	/* the driver handles the cpus in cpumask */
+	struct cpumask       *cpumask;
 };
 
 #ifdef CONFIG_CPU_IDLE
 extern void disable_cpuidle(void);
+
+extern int cpuidle_enabled(struct cpuidle_driver *drv,
+			  struct cpuidle_device *dev);
+extern int cpuidle_select(struct cpuidle_driver *drv,
+			  struct cpuidle_device *dev);
+extern int cpuidle_enter(struct cpuidle_driver *drv,
+			 struct cpuidle_device *dev, int index);
+extern void cpuidle_reflect(struct cpuidle_device *dev, int index);
+
 extern int cpuidle_idle_call(void);
 extern int cpuidle_register_driver(struct cpuidle_driver *drv);
 extern struct cpuidle_driver *cpuidle_get_driver(void);
@@ -135,11 +147,18 @@ extern void cpuidle_disable_device(struct cpuidle_device *dev);
 extern int cpuidle_play_dead(void);
 
 extern struct cpuidle_driver *cpuidle_get_cpu_driver(struct cpuidle_device *dev);
-extern int cpuidle_register_cpu_driver(struct cpuidle_driver *drv, int cpu);
-extern void cpuidle_unregister_cpu_driver(struct cpuidle_driver *drv, int cpu);
-
 #else
 static inline void disable_cpuidle(void) { }
+static inline int cpuidle_enabled(struct cpuidle_driver *drv,
+				  struct cpuidle_device *dev)
+{return -ENODEV; }
+static inline int cpuidle_select(struct cpuidle_driver *drv,
+				 struct cpuidle_device *dev)
+{return -ENODEV; }
+static inline int cpuidle_enter(struct cpuidle_driver *drv,
+				struct cpuidle_device *dev, int index)
+{return -ENODEV; }
+static inline void cpuidle_reflect(struct cpuidle_device *dev, int index) { }
 static inline int cpuidle_idle_call(void) { return -ENODEV; }
 static inline int cpuidle_register_driver(struct cpuidle_driver *drv)
 {return -ENODEV; }
@@ -194,16 +213,10 @@ struct cpuidle_governor {
 };
 
 #ifdef CONFIG_CPU_IDLE
-
 extern int cpuidle_register_governor(struct cpuidle_governor *gov);
-extern void cpuidle_unregister_governor(struct cpuidle_governor *gov);
-
 #else
-
 static inline int cpuidle_register_governor(struct cpuidle_governor *gov)
 {return 0;}
-static inline void cpuidle_unregister_governor(struct cpuidle_governor *gov) { }
-
 #endif
 
 #ifdef CONFIG_ARCH_HAS_CPU_RELAX

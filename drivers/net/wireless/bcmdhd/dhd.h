@@ -501,6 +501,7 @@ extern int dhd_os_wd_wake_lock(dhd_pub_t *pub);
 extern int dhd_os_wd_wake_unlock(dhd_pub_t *pub);
 extern int dhd_os_wake_lock_waive(dhd_pub_t *pub);
 extern int dhd_os_wake_lock_restore(dhd_pub_t *pub);
+int dhd_os_get_wake_irq(dhd_pub_t *pub);
 
 inline static void MUTEX_LOCK_SOFTAP_SET_INIT(dhd_pub_t * dhdp)
 {
@@ -800,6 +801,9 @@ extern int dhd_bssidx2idx(dhd_pub_t *dhdp, uint32 bssidx);
 
 extern bool dhd_is_concurrent_mode(dhd_pub_t *dhd);
 extern int dhd_iovar(dhd_pub_t *pub, int ifidx, char *name, char *cmd_buf, uint cmd_len, int set);
+extern int dhd_getiovar(dhd_pub_t *pub, int ifidx, char *name, char *cmd_buf,
+		uint cmd_len, char **resptr, uint resp_len);
+
 typedef enum cust_gpio_modes {
 	WLAN_RESET_ON,
 	WLAN_RESET_OFF,

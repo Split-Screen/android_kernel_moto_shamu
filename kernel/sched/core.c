@@ -3077,7 +3077,7 @@ void __kprobes add_preempt_count(int val)
 	if (DEBUG_LOCKS_WARN_ON((preempt_count() < 0)))
 		return;
 #endif
-	preempt_count() += val;
+	add_preempt_count_notrace(val);
 #ifdef CONFIG_DEBUG_PREEMPT
 	/*
 	 * Spinlock count overflowing soon?
@@ -3108,7 +3108,7 @@ void __kprobes sub_preempt_count(int val)
 
 	if (preempt_count() == val)
 		trace_preempt_on(CALLER_ADDR0, get_parent_ip(CALLER_ADDR1));
-	preempt_count() -= val;
+	sub_preempt_count_notrace(val);
 }
 EXPORT_SYMBOL(sub_preempt_count);
 
@@ -3790,6 +3790,15 @@ bool try_wait_for_completion(struct completion *x)
 {
 	unsigned long flags;
 	int ret = 1;
+
+	/*
+	 * Since x->done will need to be locked only
+	 * in the non-blocking case, we check x->done
+	 * first without taking the lock so we can
+	 * return early in the blocking case.
+	 */
+	if (!ACCESS_ONCE(x->done))
+		return 0;
 
 	spin_lock_irqsave(&x->wait.lock, flags);
 	if (!x->done)

@@ -29,6 +29,9 @@ module_param(enable_si_ws, bool, 0644);
  */
 bool events_check_enabled __read_mostly;
 
+/* If set and the system is suspending, terminate the suspend. */
+static bool pm_abort_suspend __read_mostly;
+
 /*
  * Combined counters of registered wakeup events and wakeup events in progress.
  * They need to be modified together atomically, so it's better to use one
@@ -57,6 +60,8 @@ static void pm_wakeup_timer_fn(unsigned long data);
 static LIST_HEAD(wakeup_sources);
 
 static DECLARE_WAIT_QUEUE_HEAD(wakeup_count_wait_queue);
+
+static ktime_t last_read_time;
 
 /**
  * wakeup_source_prepare - Prepare a new wakeup source for initialization.
@@ -750,7 +755,18 @@ bool pm_wakeup_pending(void)
 	if (ret)
 		print_active_wakeup_sources();
 
-	return ret;
+	return ret || pm_abort_suspend;
+}
+
+void pm_system_wakeup(void)
+{
+	pm_abort_suspend = true;
+	freeze_wake();
+}
+
+void pm_wakeup_clear(void)
+{
+	pm_abort_suspend = false;
 }
 
 /**
@@ -768,9 +784,14 @@ bool pm_wakeup_pending(void)
 bool pm_get_wakeup_count(unsigned int *count, bool block)
 {
 	unsigned int cnt, inpr;
+	unsigned long flags;
 
 	if (block) {
 		DEFINE_WAIT(wait);
+
+		spin_lock_irqsave(&events_lock, flags);
+		last_read_time = ktime_get();
+		spin_unlock_irqrestore(&events_lock, flags);
 
 		for (;;) {
 			prepare_to_wait(&wakeup_count_wait_queue, &wait,
@@ -803,6 +824,7 @@ bool pm_save_wakeup_count(unsigned int count)
 {
 	unsigned int cnt, inpr;
 	unsigned long flags;
+	struct wakeup_source *ws;
 
 	events_check_enabled = false;
 	spin_lock_irqsave(&events_lock, flags);
@@ -810,6 +832,15 @@ bool pm_save_wakeup_count(unsigned int count)
 	if (cnt == count && inpr == 0) {
 		saved_count = count;
 		events_check_enabled = true;
+	} else {
+		rcu_read_lock();
+		list_for_each_entry_rcu(ws, &wakeup_sources, entry) {
+			if (ws->active ||
+			    ktime_compare(ws->last_time, last_read_time) > 0) {
+				ws->wakeup_count++;
+			}
+		}
+		rcu_read_unlock();
 	}
 	spin_unlock_irqrestore(&events_lock, flags);
 	return events_check_enabled;
