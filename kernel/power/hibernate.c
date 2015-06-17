@@ -357,7 +357,6 @@ int hibernation_snapshot(int platform_mode)
 	}
 
 	suspend_console();
-	ftrace_stop();
 	pm_restrict_gfp_mask();
 
 	error = dpm_suspend(PMSG_FREEZE);
@@ -383,7 +382,6 @@ int hibernation_snapshot(int platform_mode)
 	if (error || !in_suspend)
 		pm_restore_gfp_mask();
 
-	ftrace_start();
 	resume_console();
 	dpm_complete(msg);
 
@@ -486,7 +484,6 @@ int hibernation_restore(int platform_mode)
 
 	pm_prepare_console();
 	suspend_console();
-	ftrace_stop();
 	pm_restrict_gfp_mask();
 	error = dpm_suspend_start(PMSG_QUIESCE);
 	if (!error) {
@@ -500,7 +497,6 @@ int hibernation_restore(int platform_mode)
 	}
 	dpm_resume_end(PMSG_RECOVER);
 	pm_restore_gfp_mask();
-	ftrace_start();
 	resume_console();
 	pm_restore_console();
 	return error;
@@ -527,7 +523,6 @@ int hibernation_platform_enter(void)
 
 	entering_platform_hibernation = true;
 	suspend_console();
-	ftrace_stop();
 	error = dpm_suspend_start(PMSG_HIBERNATE);
 	if (error) {
 		if (hibernation_ops->recover)
@@ -571,7 +566,6 @@ int hibernation_platform_enter(void)
  Resume_devices:
 	entering_platform_hibernation = false;
 	dpm_resume_end(PMSG_RESTORE);
-	ftrace_start();
 	resume_console();
 
  Close:
@@ -650,22 +644,23 @@ int hibernate(void)
 	if (error)
 		goto Exit;
 
-	/* Allocate memory management structures */
-	error = create_basic_memory_bitmaps();
-	if (error)
-		goto Exit;
-
 	printk(KERN_INFO "PM: Syncing filesystems ... ");
 	sys_sync();
 	printk("done.\n");
 
 	error = freeze_processes();
 	if (error)
-		goto Free_bitmaps;
+		goto Exit;
+
+	lock_device_hotplug();
+	/* Allocate memory management structures */
+	error = create_basic_memory_bitmaps();
+	if (error)
+		goto Thaw;
 
 	error = hibernation_snapshot(hibernation_mode == HIBERNATION_PLATFORM);
 	if (error || freezer_test_done)
-		goto Thaw;
+		goto Free_bitmaps;
 
 	if (in_suspend) {
 		unsigned int flags = 0;
@@ -688,14 +683,14 @@ int hibernate(void)
 		pr_debug("PM: Image restored successfully.\n");
 	}
 
+ Free_bitmaps:
+	free_basic_memory_bitmaps();
  Thaw:
+	unlock_device_hotplug();
 	thaw_processes();
 
 	/* Don't bother checking whether freezer_test_done is true */
 	freezer_test_done = false;
-
- Free_bitmaps:
-	free_basic_memory_bitmaps();
  Exit:
 	pm_notifier_call_chain(PM_POST_HIBERNATION);
 	pm_restore_console();
@@ -812,20 +807,19 @@ static int software_resume(void)
 	pm_prepare_console();
 	error = pm_notifier_call_chain(PM_RESTORE_PREPARE);
 	if (error)
-		goto close_finish;
-
-	error = create_basic_memory_bitmaps();
-	if (error)
-		goto close_finish;
+		goto Close_Finish;
 
 	pr_debug("PM: Preparing processes for restore.\n");
 	error = freeze_processes();
-	if (error) {
-		swsusp_close(FMODE_READ);
-		goto Done;
-	}
+	if (error)
+		goto Close_Finish;
 
 	pr_debug("PM: Loading hibernation image.\n");
+
+	lock_device_hotplug();
+	error = create_basic_memory_bitmaps();
+	if (error)
+		goto Thaw;
 
 	error = swsusp_read(&flags);
 	swsusp_close(FMODE_READ);
@@ -834,9 +828,10 @@ static int software_resume(void)
 
 	printk(KERN_ERR "PM: Failed to load hibernation image, recovering.\n");
 	swsusp_free();
-	thaw_processes();
- Done:
 	free_basic_memory_bitmaps();
+ Thaw:
+	unlock_device_hotplug();
+	thaw_processes();
  Finish:
 	pm_notifier_call_chain(PM_POST_RESTORE);
 	pm_restore_console();
@@ -846,7 +841,7 @@ static int software_resume(void)
 	mutex_unlock(&pm_mutex);
 	pr_debug("PM: Hibernation image not present or could not be loaded.\n");
 	return error;
-close_finish:
+ Close_Finish:
 	swsusp_close(FMODE_READ);
 	goto Finish;
 }
