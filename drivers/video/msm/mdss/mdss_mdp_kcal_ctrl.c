@@ -316,18 +316,19 @@ static ssize_t kcal_enable_store(struct device *dev,
 	int kcal_enable, r;
 	struct kcal_lut_data *lut_data = dev_get_drvdata(dev);
 
-	if (!lut_data)
-		return -ENODEV;
-
-	r = kstrtoint(buf, 0, &kcal_enable);
-	if ((r) || ((kcal_enable != 0) && (kcal_enable != 1)))
+	r = kstrtoint(buf, 10, &kcal_enable);
+	if ((r) || (kcal_enable != 0 && kcal_enable != 1) ||
+		(lut_data->enable == kcal_enable))
 		return -EINVAL;
 
-	if (lut_data->enable != kcal_enable) {
-		lut_data->enable = kcal_enable;
+	lut_data->enable = kcal_enable;
 
-		mdss_mdp_pp_kcal_update(lut_data);
-	}
+	if (mdss_mdp_kcal_is_panel_on()) {
+		mdss_mdp_kcal_update_pcc(lut_data);
+		mdss_mdp_kcal_update_pa(lut_data);
+		mdss_mdp_kcal_update_igc(lut_data);
+	} else
+		lut_data->queue_changes = true;
 
 	return count;
 }
