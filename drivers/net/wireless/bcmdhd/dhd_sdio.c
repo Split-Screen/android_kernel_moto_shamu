@@ -3127,49 +3127,7 @@ done:
 	return bcmerror;
 }
 #endif /* #ifdef DHD_DEBUG */
-static int
-dhdsdio_mem_dump(dhd_bus_t *bus)
-{
-	int ret = 0;
-	int size; /* Full mem size */
-	int start = bus->dongle_ram_base; /* Start address */
-	int read_size = 0; /* Read size of each iteration */
-	uint8 *databuf = NULL;
-	dhd_pub_t *dhd = bus->dhd;
 
-	if (!dhd->soc_ram) {
-		DHD_ERROR(("%s : dhd->soc_ram is NULL\n", __FUNCTION__));
-		return -1;
-	}
-
-	size = dhd->soc_ram_length = bus->ramsize;
-	/* Read mem content */
-	DHD_ERROR(("Dump dongle memory"));
-	databuf = dhd->soc_ram;
-	while (size)
-	{
-		read_size = MIN(MEMBLOCK, size);
-		if ((ret = dhdsdio_membytes(bus, FALSE, start, databuf, read_size)))
-		{
-			DHD_ERROR(("%s: Error membytes %d\n", __FUNCTION__, ret));
-			return -1;
-		}
-		/* Decrement size and increment start address */
-		size -= read_size;
-		start += read_size;
-		databuf += read_size;
-	}
-	DHD_ERROR(("Done\n"));
-
-	dhd_save_fwdump(bus->dhd, dhd->soc_ram, dhd->soc_ram_length);
-	return 0;
-}
-
-int
-dhd_socram_dump(dhd_bus_t * bus)
-{
-	return (dhdsdio_mem_dump(bus));
-}
 
 int
 dhdsdio_downloadvars(dhd_bus_t *bus, void *arg, int len)

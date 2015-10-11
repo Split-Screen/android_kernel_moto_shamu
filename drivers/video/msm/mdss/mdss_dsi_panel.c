@@ -1,4 +1,4 @@
-/* Copyright (c) 2012-2015, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012-2014, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -514,10 +514,12 @@ static struct dsi_cmd_desc set_col_page_addr_cmd[] = {
 	{{DTYPE_DCS_LWRITE, 1, 0, 0, 1, sizeof(paset)}, paset},
 };
 
-static void mdss_dsi_send_col_page_addr(struct mdss_dsi_ctrl_pdata *ctrl,
-				struct mdss_rect *roi, int unicast)
+static void send_col_page_addr(struct mdss_dsi_ctrl_pdata *ctrl,
+					struct mdss_rect *roi)
 {
 	struct dcs_cmd_req cmdreq;
+
+	roi = &ctrl->roi;
 
 	caset[1] = (((roi->x) & 0xFF00) >> 8);
 	caset[2] = (((roi->x) & 0xFF));
@@ -533,9 +535,7 @@ static void mdss_dsi_send_col_page_addr(struct mdss_dsi_ctrl_pdata *ctrl,
 
 	memset(&cmdreq, 0, sizeof(cmdreq));
 	cmdreq.cmds_cnt = 2;
-	cmdreq.flags = CMD_REQ_COMMIT | CMD_CLK_CTRL;
-	if (unicast)
-		cmdreq.flags |= CMD_REQ_UNICAST;
+	cmdreq.flags = CMD_REQ_COMMIT | CMD_CLK_CTRL | CMD_REQ_UNICAST;
 	cmdreq.rlen = 0;
 	cmdreq.cb = NULL;
 
@@ -543,11 +543,10 @@ static void mdss_dsi_send_col_page_addr(struct mdss_dsi_ctrl_pdata *ctrl,
 	mdss_dsi_cmdlist_put(ctrl, &cmdreq);
 }
 
-static int mdss_dsi_set_col_page_addr(struct mdss_panel_data *pdata,
-	bool force_send)
+static int mdss_dsi_set_col_page_addr(struct mdss_panel_data *pdata)
 {
 	struct mdss_panel_info *pinfo;
-	struct mdss_rect roi = {0};
+	struct mdss_rect roi;
 	struct mdss_rect *p_roi;
 	struct mdss_rect *c_roi;
 	struct mdss_dsi_ctrl_pdata *ctrl = NULL;
@@ -583,7 +582,7 @@ static int mdss_dsi_set_col_page_addr(struct mdss_panel_data *pdata,
 	}
 
 	/* roi had changed, do col_page update */
-	if (force_send || !mdss_rect_cmp(c_roi, &roi)) {
+	if (!mdss_rect_cmp(c_roi, &roi)) {
 		pr_debug("%s: ndx=%d x=%d y=%d w=%d h=%d\n",
 				__func__, ctrl->ndx, p_roi->x,
 				p_roi->y, p_roi->w, p_roi->h);
@@ -608,7 +607,7 @@ static int mdss_dsi_set_col_page_addr(struct mdss_panel_data *pdata,
 			if (pinfo->dcs_cmd_by_left)
 				ctrl = mdss_dsi_get_ctrl_by_index(
 							DSI_CTRL_LEFT);
-			mdss_dsi_send_col_page_addr(ctrl, &roi, 0);
+			send_col_page_addr(ctrl, &roi);
 		} else {
 			/*
 			 * when sync_wait_broadcast enabled,
@@ -620,33 +619,11 @@ static int mdss_dsi_set_col_page_addr(struct mdss_panel_data *pdata,
 				goto end;
 
 			if (mdss_dsi_is_left_ctrl(ctrl)) {
-				if (pinfo->partial_update_roi_merge) {
-					/*
-					 * roi is the one after merged
-					 * to dsi-1 only
-					 */
-					mdss_dsi_send_col_page_addr(other,
-							&roi, 0);
-				} else {
-					mdss_dsi_send_col_page_addr(ctrl,
-							&ctrl->roi, 1);
-					mdss_dsi_send_col_page_addr(other,
-							&other->roi, 1);
-				}
+				send_col_page_addr(ctrl, &ctrl->roi);
+				send_col_page_addr(other, &other->roi);
 			} else {
-				if (pinfo->partial_update_roi_merge) {
-					/*
-					 * roi is the one after merged
-					 * to dsi-1 only
-					 */
-					mdss_dsi_send_col_page_addr(ctrl,
-							&roi, 0);
-				} else {
-					mdss_dsi_send_col_page_addr(other,
-							&other->roi, 1);
-					mdss_dsi_send_col_page_addr(ctrl,
-							&ctrl->roi, 1);
-				}
+				send_col_page_addr(other, &other->roi);
+				send_col_page_addr(ctrl, &ctrl->roi);
 			}
 		}
 	}
@@ -1220,8 +1197,8 @@ static int mdss_dsi_parse_panel_features(struct device_node *np,
 		pr_info("%s: partial_update_enabled=%d\n", __func__,
 					pinfo->partial_update_enabled);
 
-		ctrl->set_col_page_addr = mdss_dsi_set_col_page_addr;
 		if (pinfo->partial_update_enabled) {
+			ctrl->set_col_page_addr = mdss_dsi_set_col_page_addr;
 			pinfo->partial_update_roi_merge =
 					of_property_read_bool(np,
 					"qcom,partial-update-roi-merge");
@@ -1630,9 +1607,6 @@ static int mdss_panel_parse_dt(struct device_node *np,
 
 	mdss_dsi_parse_dcs_cmds(np, &ctrl_pdata->off_cmds,
 		"qcom,mdss-dsi-off-command", "qcom,mdss-dsi-off-command-state");
-
-	pinfo->mipi.force_clk_lane_hs = of_property_read_bool(np,
-		"qcom,mdss-dsi-force-clock-lane-hs");
 
 	rc = mdss_dsi_parse_panel_features(np, ctrl_pdata);
 	if (rc) {

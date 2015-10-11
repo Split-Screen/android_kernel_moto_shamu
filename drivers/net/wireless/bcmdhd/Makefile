@@ -51,6 +51,9 @@ DHDCFLAGS += -DSUPPORT_PM2_ONLY
 DHDCFLAGS += -DCUSTOM_PNO_EVENT_LOCK_xTIME=10
 DHDCFLAGS += -DMIRACAST_AMPDU_SIZE=8
 
+#PNO trigger
+#DHDCFLAGS += -DPNO_MIN_RSSI_TRIGGER=-75
+
 #Gscan
 DHDCFLAGS += -DGSCAN_SUPPORT
 DHDCFLAGS += -DRTT_SUPPORT -DRTT_DEBUG
@@ -112,7 +115,10 @@ DRIVER_TYPE ?= y
 # Chip dependent feature
 #########################
 
-ifneq ($(filter y, $(CONFIG_BCM4354) $(CONFIG_BCM4356)),)
+ifneq ($(CONFIG_BCM4358),)
+#for dts
+  DHDCFLAGS += -DCONFIG_DTS
+
   DHDCFLAGS += -DUSE_WL_TXBF
   DHDCFLAGS += -DUSE_WL_FRAMEBURST
   DHDCFLAGS += -DCUSTOM_DPC_CPUCORE=0
@@ -128,7 +134,7 @@ ifneq ($(filter y, $(CONFIG_BCM4354) $(CONFIG_BCM4356)),)
 #  DHDCFLAGS += -DSAR_SUPPORT
 
 # debug info
-  DHDCFLAGS += -DDHD_WAKE_STATUS
+#  DHDCFLAGS += -DDHD_WAKE_STATUS
 
 ifneq ($(CONFIG_BCMDHD_SDIO),)
   DHDCFLAGS += -DBDC -DOOB_INTR_ONLY -DHW_OOB -DDHD_BCMEVENTS -DMMC_SDIO_ABORT
@@ -282,7 +288,7 @@ DHDOFILES := dhd_pno.o dhd_common.o dhd_ip.o dhd_custom_gpio.o \
 	bcmutils.o bcmwifi_channels.o hndpmu.o linux_osl.o sbutils.o siutils.o \
 	wl_android.o wl_roam.o wl_cfg80211.o wl_cfgp2p.o wl_cfg_btcoex.o wldev_common.o wl_linux_mon.o  \
 	dhd_linux_platdev.o dhd_pno.o dhd_rtt.o dhd_linux_wq.o wl_cfg_btcoex.o \
-	hnd_pktq.o hnd_pktpool.o wl_cfgvendor.o bcmxtlv.o dhd_debug.o dhd_debug_linux.o
+	hnd_pktq.o hnd_pktpool.o wl_cfgvendor.o bcmxtlv.o
 
 ifneq ($(CONFIG_BCMDHD_SDIO),)
   DHDOFILES += bcmsdh.o bcmsdh_linux.o bcmsdh_sdmmc.o bcmsdh_sdmmc_linux.o
